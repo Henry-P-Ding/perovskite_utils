@@ -1,3 +1,0 @@
-[submodule "slurm_jobscripts"]
-	path = slurm_jobscripts
-	url = https://github.com/Henry-P-Ding/slurm_jobscripts.git
