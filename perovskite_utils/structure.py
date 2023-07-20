@@ -1,5 +1,6 @@
 from enum import Enum, auto
 import numpy as np
+import copy
 
 
 class CoordinateModes(Enum):
@@ -57,6 +58,19 @@ class Structure:
         if not isinstance(new_mode, CoordinateModes):
             raise ValueError("new_mode argument is not of type CoordinateModes")
         self._coordinate_mode = new_mode
+
+    def translate(self, trans):
+        trans_atoms = [StructureAtom(
+            pos=[
+                atom.pos[0] + trans[0],
+                atom.pos[1] + trans[1],
+                atom.pos[2] + trans[2]
+            ],
+            label=atom.label,
+            bonds=copy.deepcopy(atom.bonds)
+        ) for atom in self.atoms]
+        return Structure(self.name, self.struct_type, copy.deepcopy(self.lattice_vec), trans_atoms, 
+                         self.coordinate_mode)
 
     def to_fract(self):
         if self.coordinate_mode == CoordinateModes.FRACTIONAL:

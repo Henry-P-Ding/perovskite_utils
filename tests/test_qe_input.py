@@ -1,5 +1,5 @@
 import unittest
-from perovskite_utils.file_utils import PWscfInputReader, CIFFileWriter, PWscfRelaxOutputReader, CIFReader, PWscfCalculation, PWscfInputWriter
+from perovskite_utils.file_read_write import PWscfInputReader, CIFFileWriter, PWscfRelaxOutputReader, CIFReader, PWscfCalculation, PWscfInputWriter
 
 
 class TestSystemNamelist(unittest.TestCase):

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import re
 import numpy as np
 import copy
-from perovskite_utils.structure_utils import CoordinateModes, Structure, StructureAtom
+from perovskite_utils.structure import CoordinateModes, Structure, StructureAtom
 
 BOHR_ANGSTROM = 0.5291772109
 
