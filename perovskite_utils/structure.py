@@ -9,35 +9,37 @@ class CoordinateModes(Enum):
 
 
 class Structure:
-    _UC_EXPAND_LAT = np.array([
-        [ 0,  0,  0],  # origin
-        [ 1,  0,  0],  # faces
-        [-1,  0,  0],
-        [ 0,  1,  0],
-        [ 0, -1,  0],
-        [ 0,  0,  1],
-        [ 0,  0, -1],
-        [ 1,  1,  0],  # edges
-        [-1,  1,  0],
-        [ 1, -1,  0],
-        [-1, -1,  0],
-        [ 0,  1,  1],
-        [ 0, -1,  1],
-        [ 0,  1, -1],
-        [ 0, -1, -1],
-        [ 1,  0,  1],
-        [-1,  0,  1],
-        [ 1,  0, -1],
-        [-1,  0, -1],
-        [ 1,  1,  1],  # corners
-        [-1,  1,  1],
-        [ 1, -1,  1],
-        [ 1,  1, -1],
-        [-1, -1,  1],
-        [ 1, -1, -1],
-        [-1,  1, -1],
-        [-1, -1, -1]
-    ])
+    _UC_EXPAND_LAT = np.array(
+        [
+            [0, 0, 0],  # origin
+            [1, 0, 0],  # faces
+            [-1, 0, 0],
+            [0, 1, 0],
+            [0, -1, 0],
+            [0, 0, 1],
+            [0, 0, -1],
+            [1, 1, 0],  # edges
+            [-1, 1, 0],
+            [1, -1, 0],
+            [-1, -1, 0],
+            [0, 1, 1],
+            [0, -1, 1],
+            [0, 1, -1],
+            [0, -1, -1],
+            [1, 0, 1],
+            [-1, 0, 1],
+            [1, 0, -1],
+            [-1, 0, -1],
+            [1, 1, 1],  # corners
+            [-1, 1, 1],
+            [1, -1, 1],
+            [1, 1, -1],
+            [-1, -1, 1],
+            [1, -1, -1],
+            [-1, 1, -1],
+            [-1, -1, -1],
+        ]
+    )
 
     def __init__(self, name, struct_type, lattice_vec, atoms, coordinate_mode):
         self.name = name
@@ -60,21 +62,35 @@ class Structure:
         self._coordinate_mode = new_mode
 
     def translate(self, trans):
-        trans_atoms = [StructureAtom(
-            pos=[
-                atom.pos[0] + trans[0],
-                atom.pos[1] + trans[1],
-                atom.pos[2] + trans[2]
-            ],
-            label=atom.label,
-            bonds=copy.deepcopy(atom.bonds)
-        ) for atom in self.atoms]
-        return Structure(self.name, self.struct_type, copy.deepcopy(self.lattice_vec), trans_atoms, 
-                         self.coordinate_mode)
+        trans_atoms = [
+            StructureAtom(
+                pos=[
+                    atom.pos[0] + trans[0],
+                    atom.pos[1] + trans[1],
+                    atom.pos[2] + trans[2],
+                ],
+                label=atom.label,
+                bonds=copy.deepcopy(atom.bonds),
+            )
+            for atom in self.atoms
+        ]
+        return Structure(
+            self.name,
+            self.struct_type,
+            copy.deepcopy(self.lattice_vec),
+            trans_atoms,
+            self.coordinate_mode,
+        )
 
     def to_fract(self):
         if self.coordinate_mode == CoordinateModes.FRACTIONAL:
-            return Structure(self.name, self.struct_type, self.lattice_vec, self.atoms, self.coordinate_mode)
+            return Structure(
+                self.name,
+                self.struct_type,
+                self.lattice_vec,
+                self.atoms,
+                self.coordinate_mode,
+            )
         elif self.coordinate_mode == CoordinateModes.CARTESIAN:
             cart_pos = [atom.pos for atom in self.atoms]
             # cart to fract transformation matrix
@@ -83,30 +99,43 @@ class Structure:
             fract_atoms = []
             for i, atom in enumerate(self.atoms):
                 fract_atoms.append(StructureAtom(fract_pos[i], atom.label))
-            return Structure(self.name, self.struct_type, self.lattice_vec, fract_atoms, CoordinateModes.FRACTIONAL)
-            
+            return Structure(
+                self.name,
+                self.struct_type,
+                self.lattice_vec,
+                fract_atoms,
+                CoordinateModes.FRACTIONAL,
+            )
+
     def set_lattice_vec_from_cell_params(self, a, b, c, alpha, beta, gamma):
         a_vec = [a, 0, 0]
         b_vec = [b * np.cos(gamma), b * np.sin(gamma), 0]
-        c_vec = [c * np.cos(beta), c * (np.cos(alpha) - np.cos(beta) * np.cos(gamma)) / np.sin(gamma), c * np.sqrt(1 - np.square(np.cos(beta)) - np.square((np.cos(alpha) - np.cos(beta) * np.cos(gamma))))]
+        c_vec = [
+            c * np.cos(beta),
+            c * (np.cos(alpha) - np.cos(beta) * np.cos(gamma)) / np.sin(gamma),
+            c
+            * np.sqrt(
+                1
+                - np.square(np.cos(beta))
+                - np.square((np.cos(alpha) - np.cos(beta) * np.cos(gamma)))
+            ),
+        ]
         self.lattice_vec = [a_vec, b_vec, c_vec]
-
 
     def get_cell_params_from_lattice_vec(self):
         a_vec, b_vec, c_vec = list(np.array(self.lattice_vec))
         a, b, c = map(np.linalg.norm, [a_vec, b_vec, c_vec])
-        alpha = np.rad2deg(np.arccos(np.dot(b_vec, c_vec)
-                                                / b / c))
-        beta  = np.rad2deg(np.arccos(np.dot(a_vec, c_vec)
-                                                / a / c))
-        gamma = np.rad2deg(np.arccos(np.dot(a_vec, b_vec)
-                                                / a / b))
+        alpha = np.rad2deg(np.arccos(np.dot(b_vec, c_vec) / b / c))
+        beta = np.rad2deg(np.arccos(np.dot(a_vec, c_vec) / a / c))
+        gamma = np.rad2deg(np.arccos(np.dot(a_vec, b_vec) / a / b))
         return a, b, c, alpha, beta, gamma
 
     def get_cell_volume(self):
-        return np.abs(np.dot(self.lattice_vec[0], np.cross(self.lattice_vec[1], 
-                                                                        self.lattice_vec[2])))
-
+        return np.abs(
+            np.dot(
+                self.lattice_vec[0], np.cross(self.lattice_vec[1], self.lattice_vec[2])
+            )
+        )
 
     def detect_bonds(self, possible_bonds, bond_vec_predicate, check_boundaries=True):
         checked_atoms = []
@@ -114,7 +143,9 @@ class Structure:
         if check_boundaries:
             if self.coordinate_mode == CoordinateModes.FRACTIONAL:
                 for translation in self._UC_EXPAND_LAT:
-                    checked_atoms += [atom.translate(translation) for atom in self.atoms]
+                    checked_atoms += [
+                        atom.translate(translation) for atom in self.atoms
+                    ]
                     original_indices += [i for i in range(len(self.atoms))]
             elif self.coordinate_mode == CoordinateModes.CARTESIAN:
                 for translation in self._UC_EXPAND_LAT:
@@ -138,9 +169,13 @@ class Structure:
                 elif self.coordinate_mode == CoordinateModes.CARTESIAN:
                     cart_bond_vec = bond_vec
                 else:
-                    raise RuntimeError(f"Invalid coordinate mode of {self.coordinate_mode}")
+                    raise RuntimeError(
+                        f"Invalid coordinate mode of {self.coordinate_mode}"
+                    )
                 if bond_vec_predicate(cart_bond_vec, label_pair):
-                    in_cell_atom.bonds.append(Bond(cart_bond_vec, in_cell_atom, all_atoms))
+                    in_cell_atom.bonds.append(
+                        Bond(cart_bond_vec, in_cell_atom, all_atoms)
+                    )
                     all_atoms.bonds.append(Bond(cart_bond_vec, in_cell_atom, all_atoms))
 
     @staticmethod
@@ -161,7 +196,7 @@ class StructureAtom:
         return f"{self.label}: {self.pos}"
 
     def translate(self, translation):
-        new_pos = list(map(lambda e1, e2 : e1 + e2, self.pos, translation))
+        new_pos = list(map(lambda e1, e2: e1 + e2, self.pos, translation))
         return StructureAtom(new_pos, self.label, self.bonds)
 
 
@@ -190,4 +225,3 @@ class Bond:
         labels = [atom.label for atom in self._atoms]
         labels.sort()
         return f"{labels[0]}-{labels[1]}: {self.bond_length:.3f}"
-        
