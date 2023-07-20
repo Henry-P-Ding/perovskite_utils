@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 import re
 import numpy as np
+import copy
 from perovskite_utils.structure_utils import CoordinateModes, Structure, StructureAtom
 
 BOHR_ANGSTROM = 0.5291772109
@@ -320,11 +321,11 @@ class CIFIdleReaderState(CIFReaderState):
         if "data_" in self._file_reader.current_str:
             self._file_reader.switch_state("name")
 
-        elif "_cell" in self._file_reader.current_str:
+        elif len(self._file_reader.current_str.split("_")) > 1 and "cell"  == self._file_reader.current_str.split("_")[1]:
             self._file_reader.switch_state("cell_parameters")
 
-        elif "loop_" in self._file_reader.current_str:  # TODO: handle other loops that do not contain atomic position data
-            self._file_reader.switch_state("positions")
+        elif "loop_" in self._file_reader.current_str:
+            self._file_reader.switch_state("loop")
 
     def exit(self):
         pass
@@ -338,6 +339,28 @@ class CIFNameReaderState(CIFReaderState):
 
     def execute(self):
         pass
+
+    def exit(self):
+        pass
+
+
+class CIFLoopReaderState(CIFReaderState):
+    def __init__(self, file_reader):
+        super().__init__(file_reader)
+        self._field_order = []
+
+    def enter(self):
+        self._field_order = []
+
+    def execute(self):
+        field_tokens = list(self._file_reader.current_str.strip().split("_"))
+        if len(field_tokens) < 2:
+            if all(map(lambda field : field in self._field_order, ["_atom_site_type_symbol", "_atom_site_fract_x", "_atom_site_fract_y", "_atom_site_fract_z"])):
+                self._file_reader.pos_field_order = copy.deepcopy(self._field_order)
+                self._file_reader.switch_state("positions")
+            else:
+                self._file_reader.switch_state("idle")
+        self._field_order.append(self._file_reader.current_str.strip())
 
     def exit(self):
         pass
@@ -359,9 +382,9 @@ class CIFCellParametersReaderState(CIFReaderState):
             return
         cell_param_type, param_var = non_empty_tokens[0].split("_")[-2:]
         if cell_param_type == "length":
-            self._cell_lengths[param_var] = float(non_empty_tokens[-1])
+            self._cell_lengths[param_var] = float(non_empty_tokens[-1].split("(")[0])
         elif cell_param_type == "angle":
-            self._cell_angles[param_var] = np.deg2rad(float(non_empty_tokens[-1]))
+            self._cell_angles[param_var] = np.deg2rad(float(non_empty_tokens[-1].split("(")[0]))
 
     def exit(self):
         if not all(map(lambda var : var in ["a", "b", "c"], self._cell_lengths.keys())):
@@ -381,12 +404,9 @@ class CIFCellParametersReaderState(CIFReaderState):
 
 
 class CIFPositionsReaderState(CIFReaderState):
-    def __init__(self, file_reader):
-        super().__init__(file_reader)
-        self._field_order = []
 
     def enter(self):
-        pass
+        self.execute()
 
     def execute(self):
         non_empty_tokens = list(filter(None, self._file_reader.current_str.strip().split(" ")))
@@ -394,33 +414,22 @@ class CIFPositionsReaderState(CIFReaderState):
             self._file_reader.switch_state("idle")
             return
 
-        split_underscore = non_empty_tokens[0].split("_")
-        if len(split_underscore) > 1 and \
-            split_underscore[1] == "atom" and \
-            split_underscore[2] == "site":
-            self._field_order.append("_".join(split_underscore[3:]))
+        # TODO: add option for Cartesian coordinates
+        self._file_reader.structure.coordinate_mode = CoordinateModes.FRACTIONAL
+        fract_pos = dict()
+        label = None
+        for i, field in enumerate(self._file_reader.pos_field_order):
+            field_tail = "_".join(field.split("_")[3:])
+            if field_tail == "fract_x":
+                fract_pos["x"] = float(non_empty_tokens[i].split("(")[0])
+            elif field_tail == "fract_y":
+                fract_pos["y"] = float(non_empty_tokens[i].split("(")[0])
+            elif field_tail == "fract_z":
+                fract_pos["z"] = float(non_empty_tokens[i].split("(")[0])
+            elif field_tail == "type_symbol":
+                label = non_empty_tokens[i]
 
-        else:
-            # TODO: add option for Cartesian coordinates
-            if not all(map(lambda field : field in self._field_order, 
-                           ["fract_x", "fract_y", "fract_z", "type_symbol"])):
-                raise RuntimeError(f"CIF loop_ fields incomplete: {self._field_order}. \
-                                   Required 'fract_x', 'fract_y', ]'fract_z', 'type_symbol'")
-            # TODO: add option for Cartesian coordinates
-            self._file_reader.structure.coordinate_mode = CoordinateModes.FRACTIONAL
-
-            for i, field in enumerate(self._field_order):
-                if field == "fract_x":
-                    fract_x = float(non_empty_tokens[i])
-                elif field == "fract_y":
-                    fract_y = float(non_empty_tokens[i])
-                elif field == "fract_z":
-                    fract_z = float(non_empty_tokens[i])
-                elif field == "type_symbol":
-                    label = non_empty_tokens[i]
-
-            self._file_reader.structure.atoms.append(StructureAtom([fract_x, fract_y, fract_z], 
-                                                                   label))
+        self._file_reader.structure.atoms.append(StructureAtom([fract_pos["x"], fract_pos["y"], fract_pos["z"]], label))
 
     def exit(self):
         pass
@@ -563,6 +572,7 @@ class CIFReader(StructureFileReader):
             reader_states={
                 "idle": CIFIdleReaderState(self),
                 "name": CIFNameReaderState(self),
+                "loop": CIFLoopReaderState(self),
                 "cell_parameters": CIFCellParametersReaderState(self),
                 "positions": CIFPositionsReaderState(self)
             },
@@ -570,6 +580,7 @@ class CIFReader(StructureFileReader):
             read_path=read_path
         )
         self.structure.struct_type = "input"
+        self.pos_field_order = []
 
     def read_file(self):
         with open(self.read_path, 'r', encoding='utf-8') as cif_file:
@@ -745,7 +756,6 @@ class PWscfInputWriter(StructureFileWriter):
 
     def __format_sci_not(self, num):
         sci_not = f"{num:.10E}"
-        print(sci_not)
         if not isinstance(num, float) or "E" not in sci_not:
             raise ValueError("num must be a float in scientific notation")
         
