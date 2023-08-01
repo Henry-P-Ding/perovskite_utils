@@ -1,5 +1,5 @@
 import numpy as np
-from perovskite_utils.structure import Structure, StructureAtom, CoordinateModes
+from perovskite_utils.perovskite_utils.structure import Structure, StructureAtom, CoordinateModes
 
 
 class PerovskiteStructure(Structure):

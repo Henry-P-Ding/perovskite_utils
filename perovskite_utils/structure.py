@@ -45,6 +45,7 @@ class Structure:
         self.name = name
         self.struct_type = struct_type
         self.lattice_vec = lattice_vec
+        self.recip_vec = []  # TODO: refactor to include recip vec
         self.atoms = atoms
         self.coordinate_mode = coordinate_mode
 
@@ -177,6 +178,11 @@ class Structure:
                         Bond(cart_bond_vec, in_cell_atom, all_atoms)
                     )
                     all_atoms.bonds.append(Bond(cart_bond_vec, in_cell_atom, all_atoms))
+
+    def add_atoms(self, new_atoms):
+        if not all(map(lambda atom : isinstance(atom, StructureAtom), new_atoms)):
+            raise ValueError("Not all elements of new_atoms are instances of StructureAtom.")
+        self.atoms.extend(new_atoms)
 
     @staticmethod
     def create_empty_structure():

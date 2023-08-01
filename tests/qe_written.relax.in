@@ -21,7 +21,7 @@
 /
 &ELECTRONS
   conv_thr = 3.7600000000d-08
-  noncolin = 4.0000000000d-01
+  mixing_beta = 5.0000000000d-01
 /
 &IONS
 /

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import re
 import numpy as np
 import copy
-from perovskite_utils.structure import CoordinateModes, Structure, StructureAtom
+from perovskite_utils.perovskite_utils.structure import CoordinateModes, Structure, StructureAtom
 
 BOHR_ANGSTROM = 0.5291772109
 
@@ -99,21 +99,21 @@ class PWscfInputReaderState(FileReaderState):
 
 class PWscfInputIdleReaderState(PWscfInputReaderState):
     def enter(self):
-        print("Entering idle state.")
+        pass
 
     def execute(self):
         tokens = self._file_reader.current_str.split(" ")
         self._switch_namelist_card(tokens[0].strip())
 
     def exit(self):
-        print("Exiting idle state.")
+        pass
 
 
 class ControlReaderState(PWscfInputReaderState):
     """Reader state of Quantum Espresso's (QE) &control namelist"""
 
     def enter(self):
-        print("Entering control namelist state.")
+        pass
 
     def execute(self):
         """Reads system namelist"""
@@ -131,14 +131,14 @@ class ControlReaderState(PWscfInputReaderState):
 
     def exit(self):
         """Abstract method for behavior when state is exitted."""
-        print("Exiting control namelist state.")
+        pass
 
 
 class SystemReaderState(PWscfInputReaderState):
     """Reader state of Quantum Espresso's (QE) &system namelist"""
 
     def enter(self):
-        print("Entering system namelist state.")
+        pass
 
     def execute(self):
         """Reads system namelist"""
@@ -150,16 +150,15 @@ class SystemReaderState(PWscfInputReaderState):
 
     def exit(self):
         """Abstract method for behavior when state is exitted."""
-        print("Exiting system namelist state.")
+        pass
 
 
 class AtomicPositionsReaderState(PWscfInputReaderState):
     """Reader state of Quantum Espresso's (QE) ATOMIC_POSITIONS card"""
 
     def enter(self):
-        print("Entering ATOMIC_POSITIONS card state.")
         tokens = self._file_reader.current_str.split(" ")
-        if tokens[1].rstrip() == "crystal":
+        if "crystal" in tokens[1].rstrip():
             self._file_reader.structure.coordinate_mode = CoordinateModes.FRACTIONAL
 
     def execute(self):
@@ -172,14 +171,14 @@ class AtomicPositionsReaderState(PWscfInputReaderState):
         self._file_reader.structure.atoms.append(StructureAtom([x, y, z], label))
 
     def exit(self):
-        print("Exiting ATOMIC_POSITIONS card state.")
+        pass
 
 
 class CellParametersReaderState(PWscfInputReaderState):
     """Reader state of Quantum Espresso's (QE) CELL_PARAMETERS card"""
 
     def enter(self):
-        print("Entering CELL_PARAMETERS card state.")
+        pass
 
     def execute(self):
         """Reads system namelist"""
@@ -192,7 +191,7 @@ class CellParametersReaderState(PWscfInputReaderState):
 
     def exit(self):
         """Abstract method for behavior when state is exitted."""
-        print("Exiting CELL_PARAMETERS card state.")
+        pass
 
 
 class PWscfOutputReaderState(FileReaderState):
@@ -233,8 +232,16 @@ class PWscfCellParametersReaderState(PWscfOutputReaderState):
                         lattice_vec,
                     )
                 )
-
                 self._file_reader.structure.lattice_vec.append(lattice_vec)
+            elif non_empty_tokens[0] in ["b(1)", "b(2)", "b(3)"]:
+                recip_vec = NumberFormatter.string_to_float(non_empty_tokens[3:6])
+                recip_vec = list(
+                    map(
+                        lambda component: component * 2 * np.pi / self._lattice_parameter,
+                        recip_vec,
+                    )
+                )
+                self._file_reader.structure.recip_vec.append(recip_vec)
 
     def exit(self):
         pass
@@ -838,9 +845,9 @@ class PWscfCalculation:
             raise ValueError(
                 f"len of forces ({len(self.forces)} not equal to len of structure.atoms {len(self.structure.atoms)})"
             )
-        if not sorted(self.unique_labels) == sorted(self.pseudos.keys()):
+        if not all(map(lambda label : label in self.pseudos.keys(), self.unique_labels)):
             raise ValueError(
-                f"keys of pseudos, {self.pseudos.keys()} must match the unique labels of structure, {self.unique_labels}."
+                f"keys of pseudos, {self.pseudos.keys()} must contain all unique labels of structure, {self.unique_labels}."
             )
         self.ecut_wfc = ecut_wfc
         self.ecut_rho = ecut_rho
@@ -867,9 +874,9 @@ class PWscfCalculation:
             for label in self.unique_labels:
                 self.masses[label] = 1.0
         else:
-            if not sorted(self.unique_labels) == sorted(self.masses.keys()):
+            if not all(map(lambda label : label in self.masses.keys(), self.unique_labels)):
                 raise ValueError(
-                    f"keys of masses, {self.masses.keys()} must match the unique labels of structure, {self.unique_labels}."
+                    f"keys of masses, {self.masses.keys()} must contain all unique labels of structure, {self.unique_labels}."
                 )
 
         if self.ibrav != 0 and self.structure.lattice_vec is not None:
@@ -911,7 +918,7 @@ class PWscfInputWriter(StructureFileWriter):
         if self._namelists is None:
             control_str = f"""&CONTROL
   calculation = '{self.pw_scf_calc.calculation}'
-  outdir = './out_{self.pw_scf_calc.prefix}/'
+  outdir = './{self.pw_scf_calc.out_prefix}{self.pw_scf_calc.prefix}/'
   prefix = '{self.pw_scf_calc.prefix}'
   pseudo_dir = './pseudo/'
   verbosity = '{self.pw_scf_calc.verbosity}'
@@ -921,7 +928,7 @@ class PWscfInputWriter(StructureFileWriter):
             if self.pw_scf_calc.forc_conv_thr is not None:
                 control_str += f"  forc_conv_thr = {self.__format_sci_not(self.pw_scf_calc.forc_conv_thr)}\n"
             if self.pw_scf_calc.restart_mode is not None:
-                control_str += f"  restart_mode = {self.pw_scf_calc.restart_mode}\n"
+                control_str += f"  restart_mode = '{self.pw_scf_calc.restart_mode}'\n"
             if self.pw_scf_calc.max_seconds is not None:
                 control_str += f"  max_seconds = {self.pw_scf_calc.max_seconds}\n"
             control_str += "/\n"
@@ -956,7 +963,7 @@ class PWscfInputWriter(StructureFileWriter):
                     f"  conv_thr = {self.__format_sci_not(self.pw_scf_calc.conv_thr)}\n"
                 )
             if self.pw_scf_calc.mixing_beta is not None:
-                electrons_str += f"  noncolin = {self.__format_sci_not(self.pw_scf_calc.mixing_beta)}\n"
+                electrons_str += f"  mixing_beta = {self.__format_sci_not(self.pw_scf_calc.mixing_beta)}\n"
             electrons_str += "/\n"
 
             ions_str = (
@@ -1005,3 +1012,35 @@ class PWscfInputWriter(StructureFileWriter):
             + k_points_str
             + cell_parameters_str
         )
+
+
+class BandsXCalculation:
+    def __init__(self, structure, lsym, out_prefix="out_", filband_suffix=".band_structure.dat", lsigma3=None):
+        self.structure = structure
+        self.lsym = lsym
+        self.lsigma3 = lsigma3
+        self.prefix = structure.name
+        self.out_prefix = out_prefix
+        self.filband_suffix = filband_suffix
+
+class BandsXInputWriter(StructureFileWriter):
+    def __init__(self, write_path, bands_x_calc):
+        super().__init__(write_path, encoding='ascii', structure=bands_x_calc.structure)
+        self._bands_x_calc = bands_x_calc
+        self._file_str = f"""&bands
+    prefix = '{self._bands_x_calc.prefix}',
+    outdir = './{self._bands_x_calc.out_prefix}{self._bands_x_calc.prefix}/',
+    filband = '{self._bands_x_calc.prefix}{self._bands_x_calc.filband_suffix}',
+    lsym = {self.__format_bool(self._bands_x_calc.lsym)}"""
+        
+        if self._bands_x_calc.lsigma3 is not None:
+            self._file_str += f""",
+    lsigma(3) = {self.__format_bool(self._bands_x_calc.lsigma3)}"""
+            
+        self._file_str += "\n/\n"
+
+    def __format_bool(self, bool_val):
+        if not isinstance(bool_val, bool):
+            raise ValueError("bool_val must be a boolean.")
+
+        return ".true." if bool_val else ".false."
