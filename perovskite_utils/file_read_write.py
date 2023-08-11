@@ -1,10 +1,12 @@
 """Utility classes for generation of file I/O for Quantum Espresso and CIF files.
 """
-from abc import ABC, abstractmethod
-import re
-import numpy as np
 import copy
-from perovskite_utils.perovskite_utils.structure import CoordinateModes, Structure, StructureAtom
+import re
+from abc import ABC, abstractmethod
+
+import numpy as np
+
+from perovskite_utils.structure import CoordinateModes, Structure, StructureAtom
 
 BOHR_ANGSTROM = 0.5291772109
 
@@ -362,8 +364,8 @@ class CIFIdleReaderState(CIFReaderState):
             self._file_reader.switch_state("name")
 
         elif (
-            len(self._file_reader.current_str.split("_")) > 1
-            and "cell" == self._file_reader.current_str.split("_")[1]
+                len(self._file_reader.current_str.split("_")) > 1
+                and "cell" == self._file_reader.current_str.split("_")[1]
         ):
             self._file_reader.switch_state("cell_parameters")
 
@@ -399,15 +401,15 @@ class CIFLoopReaderState(CIFReaderState):
         field_tokens = list(self._file_reader.current_str.strip().split("_"))
         if len(field_tokens) < 2:
             if all(
-                map(
-                    lambda field: field in self._field_order,
-                    [
-                        "_atom_site_type_symbol",
-                        "_atom_site_fract_x",
-                        "_atom_site_fract_y",
-                        "_atom_site_fract_z",
-                    ],
-                )
+                    map(
+                        lambda field: field in self._field_order,
+                        [
+                            "_atom_site_type_symbol",
+                            "_atom_site_fract_x",
+                            "_atom_site_fract_y",
+                            "_atom_site_fract_z",
+                        ],
+                    )
             ):
                 self._file_reader.pos_field_order = copy.deepcopy(self._field_order)
                 self._file_reader.switch_state("positions")
@@ -450,7 +452,7 @@ class CIFCellParametersReaderState(CIFReaderState):
             Need a, b, c."
             )
         elif not all(
-            map(lambda var: var in ["alpha", "beta", "gamma"], self._cell_angles.keys())
+                map(lambda var: var in ["alpha", "beta", "gamma"], self._cell_angles.keys())
         ):
             raise RuntimeError(
                 f"Not enough cell angles read, only {self._cell_angles.keys()}. \
@@ -507,7 +509,7 @@ class FileReader(ABC):
     def __init__(self, reader_states, start_state_name, read_path):
         self._reader_states = reader_states
         if not all(
-            map(lambda s: isinstance(s, FileReaderState), self._reader_states.values())
+                map(lambda s: isinstance(s, FileReaderState), self._reader_states.values())
         ):
             raise ValueError(
                 f"read_states argument '{reader_states}' contains classes not of \
@@ -747,9 +749,9 @@ class CIFFileWriter(StructureFileWriter):
 
     def __serialize_structure(self):
         if (
-            len(self._cell_angles) == 0
-            or self._cell_volume is None
-            or len(self._cell_lengths) == 0
+                len(self._cell_angles) == 0
+                or self._cell_volume is None
+                or len(self._cell_lengths) == 0
         ):
             self.__set_crystal_params()
 
@@ -790,13 +792,13 @@ _cell_volume      {formatted_cell_volume}\n"""
             )
 
         pos_str = (
-            """loop_
-    _atom_site_label
-    _atom_site_fract_x
-    _atom_site_fract_y
-    _atom_site_fract_z
-    _atom_site_type_symbol\n"""
-            + formatted_atoms
+                """loop_
+        _atom_site_label
+        _atom_site_fract_x
+        _atom_site_fract_y
+        _atom_site_fract_z
+        _atom_site_type_symbol\n"""
+                + formatted_atoms
         )
 
         return "\n".join([data_str, cell_str, pos_str])
@@ -804,31 +806,31 @@ _cell_volume      {formatted_cell_volume}\n"""
 
 class PWscfCalculation:
     def __init__(
-        self,
-        structure,
-        calculation,
-        pseudo_dir,
-        ecut_wfc,
-        ecut_rho,
-        occupations,
-        pseudos,
-        forces,
-        k_points_mode,
-        k_points,
-        out_prefix="out_",
-        verbosity="low",
-        etot_conv_thr=None,
-        forc_conv_thr=None,
-        restart_mode=None,
-        max_seconds=None,
-        ibrav=0,
-        nosym=None,
-        noncolin=None,
-        lspinorb=None,
-        nbnd=None,
-        conv_thr=None,
-        mixing_beta=None,
-        masses=None,
+            self,
+            structure,
+            calculation,
+            pseudo_dir,
+            ecut_wfc,
+            ecut_rho,
+            occupations,
+            pseudos,
+            forces,
+            k_points_mode,
+            k_points,
+            out_prefix="out_",
+            verbosity="low",
+            etot_conv_thr=None,
+            forc_conv_thr=None,
+            restart_mode=None,
+            max_seconds=None,
+            ibrav=0,
+            nosym=None,
+            noncolin=None,
+            lspinorb=None,
+            nbnd=None,
+            conv_thr=None,
+            mixing_beta=None,
+            masses=None,
     ):
         self.structure = structure
         self.unique_labels = []
@@ -845,7 +847,7 @@ class PWscfCalculation:
             raise ValueError(
                 f"len of forces ({len(self.forces)} not equal to len of structure.atoms {len(self.structure.atoms)})"
             )
-        if not all(map(lambda label : label in self.pseudos.keys(), self.unique_labels)):
+        if not all(map(lambda label: label in self.pseudos.keys(), self.unique_labels)):
             raise ValueError(
                 f"keys of pseudos, {self.pseudos.keys()} must contain all unique labels of structure, {self.unique_labels}."
             )
@@ -874,7 +876,7 @@ class PWscfCalculation:
             for label in self.unique_labels:
                 self.masses[label] = 1.0
         else:
-            if not all(map(lambda label : label in self.masses.keys(), self.unique_labels)):
+            if not all(map(lambda label: label in self.masses.keys(), self.unique_labels)):
                 raise ValueError(
                     f"keys of masses, {self.masses.keys()} must contain all unique labels of structure, {self.unique_labels}."
                 )
@@ -995,9 +997,9 @@ class PWscfInputWriter(StructureFileWriter):
 {''.join(NumberFormatter.get_constant_length(self.pw_scf_calc.forces[i], 2, 0))}\n"
 
         k_points_str = (
-            f"K_POINTS {self.pw_scf_calc.k_points_mode}\n"
-            + self.pw_scf_calc.k_points
-            + "\n"
+                f"K_POINTS {self.pw_scf_calc.k_points_mode}\n"
+                + self.pw_scf_calc.k_points
+                + "\n"
         )
 
         cell_parameters_str = f"""CELL_PARAMETERS angstrom
@@ -1007,10 +1009,10 @@ class PWscfInputWriter(StructureFileWriter):
 """
 
         self._cards = (
-            atomic_species_str
-            + atomic_positions_str
-            + k_points_str
-            + cell_parameters_str
+                atomic_species_str
+                + atomic_positions_str
+                + k_points_str
+                + cell_parameters_str
         )
 
 
@@ -1023,6 +1025,7 @@ class BandsXCalculation:
         self.out_prefix = out_prefix
         self.filband_suffix = filband_suffix
 
+
 class BandsXInputWriter(StructureFileWriter):
     def __init__(self, write_path, bands_x_calc):
         super().__init__(write_path, encoding='ascii', structure=bands_x_calc.structure)
@@ -1032,11 +1035,11 @@ class BandsXInputWriter(StructureFileWriter):
     outdir = './{self._bands_x_calc.out_prefix}{self._bands_x_calc.prefix}/',
     filband = '{self._bands_x_calc.prefix}{self._bands_x_calc.filband_suffix}',
     lsym = {self.__format_bool(self._bands_x_calc.lsym)}"""
-        
+
         if self._bands_x_calc.lsigma3 is not None:
             self._file_str += f""",
     lsigma(3) = {self.__format_bool(self._bands_x_calc.lsigma3)}"""
-            
+
         self._file_str += "\n/\n"
 
     def __format_bool(self, bool_val):

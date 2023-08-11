@@ -1,5 +1,6 @@
 import numpy as np
-from perovskite_utils.perovskite_utils.structure import Structure, StructureAtom, CoordinateModes
+
+from perovskite_utils.structure import Structure, StructureAtom, CoordinateModes
 
 
 class PerovskiteStructure(Structure):
@@ -8,18 +9,18 @@ class PerovskiteStructure(Structure):
 
     @staticmethod
     def from_param(
-        name,
-        lattice_vec,
-        cart_M_disp,
-        cart_layer_trans,
-        theta_d,
-        ax_bl,
-        beta_bl_ratio,
-        betap_bl_ratio,
-        beta_d,
-        betap_d,
-        M_label,
-        X_label,
+            name,
+            lattice_vec,
+            cart_M_disp,
+            cart_layer_trans,
+            theta_d,
+            ax_bl,
+            beta_bl_ratio,
+            betap_bl_ratio,
+            beta_d,
+            betap_d,
+            M_label,
+            X_label,
     ):
         a, b, c = np.linalg.norm(lattice_vec, axis=1)
         x, y = cart_M_disp
@@ -52,7 +53,7 @@ class PerovskiteStructure(Structure):
 
     @staticmethod
     def generate_layer(
-        a, b, x, y, theta_r, ax_bl, beta_bl_ratio, betap_bl_ratio, beta_r, betap_r
+            a, b, x, y, theta_r, ax_bl, beta_bl_ratio, betap_bl_ratio, beta_r, betap_r
     ):
         # M atom positions
         M_pos = np.array([[x, y, 0], [0, 0, 0]])

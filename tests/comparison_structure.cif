@@ -9,11 +9,11 @@ _cell_angle_gamma       90.000530
 _cell_volume          1999.873129
 
 loop_
-    _atom_site_label
-    _atom_site_fract_x
-    _atom_site_fract_y
-    _atom_site_fract_z
-    _atom_site_type_symbol
+        _atom_site_label
+        _atom_site_fract_x
+        _atom_site_fract_y
+        _atom_site_fract_z
+        _atom_site_type_symbol
     Pb1   0.647950  0.743360  0.574720 Pb
     Pb2   0.147950  0.243360  0.574720 Pb
     Pb3  -0.647950 -0.243360  0.074720 Pb

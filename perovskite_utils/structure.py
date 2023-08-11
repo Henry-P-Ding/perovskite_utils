@@ -1,6 +1,7 @@
-from enum import Enum, auto
-import numpy as np
 import copy
+from enum import Enum, auto
+
+import numpy as np
 
 
 class CoordinateModes(Enum):
@@ -180,7 +181,7 @@ class Structure:
                     all_atoms.bonds.append(Bond(cart_bond_vec, in_cell_atom, all_atoms))
 
     def add_atoms(self, new_atoms):
-        if not all(map(lambda atom : isinstance(atom, StructureAtom), new_atoms)):
+        if not all(map(lambda atom: isinstance(atom, StructureAtom), new_atoms)):
             raise ValueError("Not all elements of new_atoms are instances of StructureAtom.")
         self.atoms.extend(new_atoms)
 

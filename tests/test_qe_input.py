@@ -1,5 +1,7 @@
 import unittest
-from perovskite_utils.perovskite_utils.file_read_write import PWscfInputReader, CIFFileWriter, PWscfRelaxOutputReader, CIFReader, PWscfCalculation, PWscfInputWriter
+
+from perovskite_utils.file_read_write import PWscfInputReader, CIFFileWriter, PWscfRelaxOutputReader, CIFReader, \
+    PWscfCalculation, PWscfInputWriter
 
 
 class TestSystemNamelist(unittest.TestCase):
@@ -8,8 +10,8 @@ class TestSystemNamelist(unittest.TestCase):
         qe_reader.read_file()
         self.assertEqual(qe_reader.structure.name, "SMBA2PbI4_150.000_150.000")
         self.assertEqual(qe_reader.structure.lattice_vec, [
-            [ 8.4318200000,  0.0000000000,  0.0000000000],
-            [-0.0000810450,  8.7613899996,  0.0000000000],
+            [8.4318200000, 0.0000000000, 0.0000000000],
+            [-0.0000810450, 8.7613899996, 0.0000000000],
             [-0.0034538454, -0.0116041962, 27.0712372926]
         ])
         cif_writer = CIFFileWriter("perovskite_utils/tests/test_qe.cif", qe_reader.structure)
@@ -54,10 +56,10 @@ class TestSystemNamelist(unittest.TestCase):
                 "Pb": 207.2
             },
             pseudos={
-                "C" : "C.pbesol-n-kjpaw_psl.1.0.0.UPF",
-                "H" : "H.pbesol-rrkjus_psl.1.0.0.UPF",
-                "I" : "I.pbesol-n-kjpaw_psl.0.2.UPF",
-                "N" : "N.pbesol-theos.UPF",
+                "C": "C.pbesol-n-kjpaw_psl.1.0.0.UPF",
+                "H": "H.pbesol-rrkjus_psl.1.0.0.UPF",
+                "I": "I.pbesol-n-kjpaw_psl.0.2.UPF",
+                "N": "N.pbesol-theos.UPF",
                 "Pb": "Pb.pbesol-FR.upf"
             },
             forces=[[0, 0, 1]] * 8 + [[1, 1, 1]] * 4 + [[0, 0, 1]] * 4 + [[1, 1, 1]] * 172,
@@ -66,6 +68,7 @@ class TestSystemNamelist(unittest.TestCase):
         )
         qe_writer = PWscfInputWriter("perovskite_utils/tests/qe_written.relax.in", cif_reader.structure, calculation)
         qe_writer.write_file()
+
 
 if __name__ == '__main__':
     unittest.main()
