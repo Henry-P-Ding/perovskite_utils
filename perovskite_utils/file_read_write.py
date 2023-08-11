@@ -6,7 +6,11 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from perovskite_utils.structure import CoordinateModes, Structure, StructureAtom
+from perovskite_utils.structure import (
+    CoordinateModes,
+    Structure,
+    StructureAtom,
+)
 
 BOHR_ANGSTROM = 0.5291772109
 
@@ -239,7 +243,10 @@ class PWscfCellParametersReaderState(PWscfOutputReaderState):
                 recip_vec = NumberFormatter.string_to_float(non_empty_tokens[3:6])
                 recip_vec = list(
                     map(
-                        lambda component: component * 2 * np.pi / self._lattice_parameter,
+                        lambda component: component
+                                          * 2
+                                          * np.pi
+                                          / self._lattice_parameter,
                         recip_vec,
                     )
                 )
@@ -295,27 +302,22 @@ class RelaxPositionsReaderState(PWscfOutputReaderState):
         non_empty_tokens = list(
             filter(None, self._file_reader.current_str.strip().split(" "))
         )
-        if len(non_empty_tokens) == 0:
+        if len(non_empty_tokens) == 0 or self._file_reader.current_str.strip() == "End final coordinates":
             if self._started_reading:
                 self._file_reader.switch_state("idle")
                 return
-            else:
-                self._started_reading = True
-                return
+        elif non_empty_tokens[0] == "ATOMIC_POSITIONS":
+            self._started_reading = True
+            if non_empty_tokens[1] == "(crystal)":
+                self._file_reader.structure.coordinate_mode = CoordinateModes.FRACTIONAL
+            return
 
         if not self._started_reading:
             return
 
-        if non_empty_tokens[0] == "ATOMIC_POSITIONS":
-            if non_empty_tokens[1] == "(crystal)":
-                self._file_reader.structure.coordinate_mode = CoordinateModes.FRACTIONAL
-
-            # TODO: implement for cartesian coordinate case
-
-        else:
-            label = non_empty_tokens[0]
-            x, y, z = NumberFormatter.string_to_float(non_empty_tokens[1:4])
-            self._file_reader.structure.atoms.append(StructureAtom([x, y, z], label))
+        label = non_empty_tokens[0]
+        x, y, z = NumberFormatter.string_to_float(non_empty_tokens[1:4])
+        self._file_reader.structure.atoms.append(StructureAtom([x, y, z], label))
 
     def exit(self):
         pass
@@ -817,6 +819,7 @@ class PWscfCalculation:
             forces,
             k_points_mode,
             k_points,
+            disk_io,
             out_prefix="out_",
             verbosity="low",
             etot_conv_thr=None,
@@ -831,6 +834,7 @@ class PWscfCalculation:
             conv_thr=None,
             mixing_beta=None,
             masses=None,
+            vdw_corr=None,
     ):
         self.structure = structure
         self.unique_labels = []
@@ -856,6 +860,7 @@ class PWscfCalculation:
         self.occupations = occupations
         self.k_points_mode = k_points_mode
         self.k_points = k_points
+        self.disk_io = disk_io
         self.out_prefix = out_prefix
         self.verbosity = verbosity
         self.etot_conv_thr = etot_conv_thr
@@ -872,11 +877,14 @@ class PWscfCalculation:
         self.conv_thr = conv_thr
         self.mixing_beta = mixing_beta
         self.masses = masses
+        self.vdw_corr = vdw_corr
         if self.masses is None:
             for label in self.unique_labels:
                 self.masses[label] = 1.0
         else:
-            if not all(map(lambda label: label in self.masses.keys(), self.unique_labels)):
+            if not all(
+                    map(lambda label: label in self.masses.keys(), self.unique_labels)
+            ):
                 raise ValueError(
                     f"keys of masses, {self.masses.keys()} must contain all unique labels of structure, {self.unique_labels}."
                 )
@@ -924,6 +932,7 @@ class PWscfInputWriter(StructureFileWriter):
   prefix = '{self.pw_scf_calc.prefix}'
   pseudo_dir = './pseudo/'
   verbosity = '{self.pw_scf_calc.verbosity}'
+  disk_io = '{self.pw_scf_calc.disk_io}'
 """
             if self.pw_scf_calc.etot_conv_thr is not None:
                 control_str += f"  etot_conv_thr = {self.__format_sci_not(self.pw_scf_calc.etot_conv_thr)}\n"
@@ -957,6 +966,8 @@ class PWscfInputWriter(StructureFileWriter):
                 )
             if self.pw_scf_calc.nbnd is not None:
                 system_str += f"  nbnd = {self.pw_scf_calc.nbnd:.0f}\n"
+            if self.pw_scf_calc.vdw_corr is not None:
+                system_str += f"  vdw_corr = '{self.pw_scf_calc.vdw_corr}'\n"
             system_str += "/\n"
 
             electrons_str = "&ELECTRONS\n"
@@ -1017,7 +1028,14 @@ class PWscfInputWriter(StructureFileWriter):
 
 
 class BandsXCalculation:
-    def __init__(self, structure, lsym, out_prefix="out_", filband_suffix=".band_structure.dat", lsigma3=None):
+    def __init__(
+            self,
+            structure,
+            lsym,
+            out_prefix="out_",
+            filband_suffix=".band_structure.dat",
+            lsigma3=None,
+    ):
         self.structure = structure
         self.lsym = lsym
         self.lsigma3 = lsigma3
@@ -1028,7 +1046,7 @@ class BandsXCalculation:
 
 class BandsXInputWriter(StructureFileWriter):
     def __init__(self, write_path, bands_x_calc):
-        super().__init__(write_path, encoding='ascii', structure=bands_x_calc.structure)
+        super().__init__(write_path, encoding="ascii", structure=bands_x_calc.structure)
         self._bands_x_calc = bands_x_calc
         self._file_str = f"""&bands
     prefix = '{self._bands_x_calc.prefix}',
