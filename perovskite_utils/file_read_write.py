@@ -70,7 +70,12 @@ class NumberFormatter:
 
 
 class FileReaderState(ABC):
-    """Abstract base class for a state of a :class:`FileReader` finite state machine."""
+    """
+    Abstract base class for a state of a :class:`FileReader` finite state machine.
+
+    :ivar _file_reader: stores the :class:`~FileReader` finite state machine this state is associated with
+    :vartype _file_reader: FileReader
+    """
 
     def __init__(self, file_reader: "FileReader") -> None:
         """:class:`~FileReaderState` constructor
@@ -93,7 +98,7 @@ class FileReaderState(ABC):
 
     @abstractmethod
     def exit(self) -> None:
-        """Abstract method for behavior when state is exitted."""
+        """Abstract method for behavior when state is exited."""
 
 
 class PWscfInputReaderState(FileReaderState, ABC):
@@ -242,6 +247,11 @@ class PWscfCellParametersReaderState(PWscfOutputReaderState):
 
     Extracts lattice parameter, unit cell lattice vectors, reciprocal lattice vectors, and
     number of electrons.
+
+    :ivar _lattice_parameter: the "a" unit cell lattice parameter
+    :vartype _lattice_parameter: float
+    :ivar _units: the length unit used by lattice vectors
+    :vartype _units: str
     """
 
     def __init__(self, file_reader: "FileReader") -> None:
@@ -258,10 +268,10 @@ class PWscfCellParametersReaderState(PWscfOutputReaderState):
         """
         Extracts the lattice parameter in angstroms
 
-        The lattice parameter and all cell parameters are always expressed in angstroms. Since any idle helper state
+        The lattice parameter and all cell parameters are always expressed in angstroms. Since the idle helper state
         switches to :class:`~PWscfCellParametersReaderState` state on the line containing the lattice parameter,
-        the prefix must be extracted on the :method:`~enter` method. :method:`~execute` is first called on the next
-        line of input.
+        the prefix must be extracted on the :meth:`~PWscfCellParametersReaderState.enter` method.
+        :meth:`~PWscfCellParametersReaderState.execute` is first called on the next line of input.
         """
         non_empty_tokens = list(
             filter(None, self._file_reader.current_str.strip().split(" "))
@@ -368,9 +378,9 @@ class RelaxNameReaderState(PWscfOutputReaderState):
         Extracts the PWscf calculation prefix
 
         Since :class:`~RelaxIdleReaderState` state switches to :class:`~RelaxNameReaderState` state on the line
-        containing the prefix, the prefix must be extracted on the :method:`~enter` method. :method:`~execute` is
-        first called on the next line of input. Once the prefix is read, the :method:`~enter` method calls
-        :method:`FileReader.switch_state`to switches back to the :class:`~RelaxIdleReaderState` state.
+        containing the prefix, the prefix must be extracted on the :meth:`~RelaxNameReaderState.enter` method. :meth:`~RelaxNameReaderState.execute` is
+        first called on the next line of input. Once the prefix is read, the :meth:`~RelaxNameReaderState.enter` method
+        calls :meth:`~FileReader.switch_state` to switch back to the :class:`~RelaxIdleReaderState` state.
         """
         non_empty_tokens = list(
             filter(None, self._file_reader.current_str.strip().split(" "))
@@ -394,6 +404,9 @@ class RelaxPositionsReaderState(PWscfOutputReaderState):
 
     In the calculation='relax' output, the final atomic positions are prefixed by the line "End of BFGS Geometry
     Optimization" before the atomic positions are outputted in the PWscf ATOMIC_POSITIONS card input format.
+
+    :ivar _started_reading: flag for whether the file reader has started reading atomic positions
+    :vartype _started_reading: boolean
     """
 
     def __init__(self, file_reader: 'FileReader') -> None:
@@ -479,9 +492,9 @@ class SCFNameReaderState(PWscfOutputReaderState):
         Extracts the PWscf calculation prefix
 
         Since :class:`~SCFIdleReaderState` state switches to :class:`~SCFNameReaderState` state on the line
-        containing the prefix, the prefix must be extracted on the :method:`~enter` method. :method:`~execute` is
-        first called on the next line of input. Once the prefix is read, the :method:`~enter` method calls
-        :method:`FileReader.switch_state`to switches back to the :class:`~SCFIdleReaderState` state.
+        containing the prefix, the prefix must be extracted on the :meth:`~SCFNameReaderState.enter` method. :meth:`~SCFNameReaderState.execute` is
+        first called on the next line of input. Once the prefix is read, the :meth:`~SCFNameReaderState.enter` method calls
+        :meth:`~FileReader.switch_state` to switch back to the :class:`~SCFNameReaderState` state.
         """
         non_empty_tokens = list(
             filter(None, self._file_reader.current_str.strip().split(" "))
@@ -513,7 +526,7 @@ class CIFIdleReaderState(CIFReaderState):
     """
     CIF file idle reader state for transitioning between states
 
-    Reads file input to determine transitions into the "name", "cell_parameters", and "loop" states corresponding to
+    Reads file input to determine transitions into the 'name', 'cell_parameters', and 'loop' states corresponding to
     :class:`~CIFNameReaderState`, :class:`~CIFCellParametersReaderState`, and :class:`~CIFLoopReaderState`.
     """
 
@@ -550,9 +563,9 @@ class CIFNameReaderState(CIFReaderState):
         Extracts the system name
 
         Since :class:`~CIFIdleReaderState` state switches to :class:`~CIFNameReaderState` state on the line
-        containing the system name, the name must be extracted on the :method:`~enter` method. :method:`~execute` is
-        first called on the next line of input. Once the prefix is read, the :method:`~enter` method calls
-        :method:`FileReader.switch_state` to switch back to the :class:`~CIFIdleReaderState` state.
+        containing the system name, the name must be extracted on the :meth:`~CIFNameReaderState.enter` method. :meth:`~CIFNameReaderState.execute` is
+        first called on the next line of input. Once the prefix is read, the :meth:`~CIFNameReaderState.enter` method calls
+        :meth:`~FileReader.switch_state` to switch back to the :class:`~CIFIdleReaderState` state.
         """
         name = "_".join(self._file_reader.current_str.strip().split("_")[1:])
         self._file_reader.structure.name = name
@@ -569,9 +582,12 @@ class CIFLoopReaderState(CIFReaderState):
     """
     CIF file reader state for extracting loop information of the system
 
-    The fields under the "loop_" flag in a CIF file indicate the order of information specified in the loop. This state
+    The fields under the loop_ flag in a CIF file indicate the order of information specified in the loop. This state
     extracts the field order and transitions to the "positions" state, or :class:`CIFPositionsReaderState`, to read in
     atomic positions.
+
+    :ivar _field_order: order of fields specified in the loop_
+    :vartype _field_order: Iterable[str]
     """
 
     def __init__(self, file_reader: 'CIFReader') -> None:
@@ -626,6 +642,11 @@ class CIFCellParametersReaderState(CIFReaderState):
     The fields under the "loop_" flag in a CIF file indicate the order of information specified in the loop. This state
     extracts the field order and transitions to the "positions" state, or :class:`CIFPositionsReaderState`, to read in
     atomic positions.
+
+    :ivar _cell_lengths: maps "a", "b", "c" to the corresponding crystallographic cell lengths
+    :vartype _cell_lengths: Dict[str, float]
+    :ivar _cell_angles: maps "alpha", "beta", "gamma" to the corresponding crystallographic cell angles in degrees
+    :vartype _cell_angles: Dict[str, float]
     """
 
     def __init__(self, file_reader: 'CIFReader') -> None:
@@ -641,16 +662,16 @@ class CIFCellParametersReaderState(CIFReaderState):
         super().__init__(file_reader)
         # maps the "a", "b", "c" cell lengths in a dictionary
         self._cell_lengths = dict()
-        # maps the "alpha", "beta", "gamma" cell angles in a dictionary
+        # maps the "alpha", "beta", "gamma" cell angles in degrees (CIF specifies in degrees) in a dictionary
         self._cell_angles = dict()
 
     def enter(self) -> None:
         """
-        Calls :method:`~execute` on the first line of cell parameter information
+        Calls :meth:`~CIFCellParametersReaderState.execute` on the first line of cell parameter information
 
         Since :class:`~CIFIdleReaderState` state switches to :class:`~CIFCellParametersReaderState` state on a line
-        containing the cell parameter information, the information must be extracted by calling :method:`~execute` on
-        the :method:`~enter` method. :method:`~execute` is first called by :attr:`~._file_reader` on the next line of
+        containing the cell parameter information, the information must be extracted by calling :meth:`~CIFCellParametersReaderState.execute` on
+        the :meth:`~CIFCellParametersReaderState.enter` method. :meth:`~execute` is first called by :attr:`~FileReaderState._file_reader` on the next line of
         input.
         """
         self.execute()
@@ -717,11 +738,11 @@ class CIFPositionsReaderState(CIFReaderState):
 
     def enter(self) -> None:
         """
-        Calls :method:`~execute` on the first line of atomic position information
+        Calls :meth:`~CIFPositionsReaderState.execute` on the first line of atomic position information
 
         Since :class:`~CIFLoopReaderState` state switches to :class:`~CIFPositionsReaderState` state on a line
-        containing atomic position information, the information must be extracted by calling :method:`~execute` on
-        the :method:`~enter` method. :method:`~execute` is first called by :attr:`~._file_reader` on the next line of
+        containing atomic position information, the information must be extracted by calling :meth:`~CIFPositionsReaderState.execute` on
+        the :meth:`~CIFPositionsReaderState.enter` method. :meth:`~CIFPositionsReaderState.execute` is first called by :attr:`FileReaderState._file_reader` on the next line of
         input.
         """
         self.execute()
@@ -763,7 +784,18 @@ class CIFPositionsReaderState(CIFReaderState):
 
 
 class FileReader(ABC):
-    """Abstract base class for a file reader that implements a finite state machine"""
+    """
+    Abstract base class for a file reader that implements a finite state machine
+
+    :ivar _reader_states: registry of states that dictate the behavior of states in the finite state machine
+    :vartype _reader_states: Dict[str, FileReaderState]
+    :ivar _current_str: current string data from the input file being processed
+    :vartype _current_str: str
+    :ivar _read_path: path to the file to be read
+    :vartype _read_path: str
+    :ivar current_state: current state of the finite state machine
+    :vartype current_state: FileReaderState
+    """
 
     def __init__(self, reader_states: Dict[str, FileReaderState], start_state_name: str, read_path: str) -> None:
         """:class:`FileReader` constructor
@@ -821,7 +853,7 @@ class FileReader(ABC):
         Switches the finite state machine to a new state.
 
         Classes that inherit :class:`FileReader` and are pure finite state machines should only call
-        :method:`~switch_state` through the :attr:`~FileReaderState._file_reader` attribute within an instance of
+        :meth:`~FileReader.switch_state` through the :attr:`FileReaderState._file_reader` attribute within an instance of
         :class:`~FileReaderState`.
 
         :param new_state_name: name of the new state as defined in the :attr:`~._reader_states` dict
@@ -855,6 +887,9 @@ class StructureFileReader(FileReader, ABC):
 
     Nearly identical to :class:`~FileReader`, but contain and additional :attr:`~structure` attribute which stores an
     instance of :class:`Structure` which holds structural information.
+
+    :ivar structure: structure to be extracted from the file by the reader
+    :vartype structure: Structure
     """
 
     def __init__(self, reader_states: Dict[str, FileReaderState], start_state_name: str, read_path: str) -> None:
@@ -936,7 +971,12 @@ class PWscfInputReader(StructureFileReader):
 
 
 class PWscfOutputReader(StructureFileReader, ABC):
-    """Abstract base class for PWscf output file readers"""
+    """
+    Abstract base class for PWscf output file readers
+
+    :ivar num_electrons: number of electrons in the PWscf calculation
+    :vartype num_electrons: int
+    """
 
     def __init__(self, reader_states: Dict[str, FileReaderState], start_state_name: str, read_path: str):
         """:class:`PWscfOutputReader` constructor
@@ -949,7 +989,6 @@ class PWscfOutputReader(StructureFileReader, ABC):
         :type read_path: str
         """
         super().__init__(reader_states, start_state_name, read_path)
-        # number of electrons in the system
         self.num_electrons = None
 
 
@@ -1027,7 +1066,8 @@ class CIFReader(StructureFileReader):
     """
     A CIF structure file reader
 
-    :attr:`~pos_field_order` order of fields in a "loop_" section of a CIF file
+    :ivar pos_field_order: order of fields in a loop_ section of a CIF file, set by :class:`~CIFLoopReaderState`.
+    :vartype pos_field_order: Iterable[str]
     """
 
     def __init__(self, read_path: str) -> None:
@@ -1065,6 +1105,7 @@ class CIFReader(StructureFileReader):
     def feed(self, str_data: str) -> None:
         """
         Feeds new string data from the input file into the finite state machine
+
         :param str_data: string data to be fed to the finite state machine
         :type str_data: str
         """
@@ -1073,7 +1114,16 @@ class CIFReader(StructureFileReader):
 
 
 class FileWriter(ABC):
-    """An abstract base class for a file writer"""
+    """
+    An abstract base class for a file writer
+
+    :ivar _write_path: path to the file to be written
+    :vartype _write_path: str
+    :ivar _encoding: encoding of the file to be written
+    :vartype _encoding: str
+    :ivar _file_str: serialized data of the file to be written
+    :vartype _file_str: str
+    """
 
     def __init__(self, write_path: str, encoding: str) -> None:
         """:class:`~FileWriter` constructor
@@ -1100,7 +1150,7 @@ class StructureFileWriter(FileWriter):
     An output file writer that writes structural information
 
     :class:`~StructureFileWriter` is nearly identical to :class:`~FileWriter`, but stores additional structural
-    information in :method:`~structure`.
+    information in :attr:`~StructureFileWriter.structure`.
     """
 
     def __init__(self, write_path, encoding, structure):
@@ -1122,8 +1172,17 @@ class CIFFileWriter(StructureFileWriter):
     """A CIF structure file writer
 
     Since cell parameters are specified as the standard cell length and cell angle lattice parameters in a CIF file,
-    they are calculated from the :attr:`Structure.lattice_vec` attributes and stored in the :attr:`~_cell_angles`,
-    :attr:`~_cell_lengths`, and :attr:`~_cell_volume` attributes.
+    they are calculated from the :obj:`~.Structure.lattice_vec` attributes in :attr:`StructureFileWriter.structure` and stored in the :attr:`~CIFFileWriter._cell_angles`,
+    :obj:`~.CIFFileWriter._cell_lengths`, and :attr:`~CIFFileWriter._cell_volume` attributes.
+
+    :ivar _cell_angles: standard crystallographic cell angles in degrees
+    :vartype _cell_angles: tuple[float, float, float]
+    :ivar _cell_volume: cell volume in cubic angstroms
+    :vartype _cell_volume: float
+    :ivar _cell_lengths: standard crystallographic cell lengths in angstroms
+    :vartype _cell_lengths: tuple[float, float, float]
+    :ivar _numbered_labels: collection of numbered labels for each atom, counting by the number of each element present
+    :vartype _numbered_labels: Iterable[str]
     """
 
     def __init__(self, write_path: str, structure: Structure) -> None:
@@ -1249,7 +1308,7 @@ class PWscfCalculation:
             ecutrho: float,
             occupations: str,
             pseudos: Dict[str, str],
-            forces: Iterable[Iterable[int, int, int]],
+            forces: Iterable[tuple[int, int, int]],
             k_points_mode: str,
             k_points: str,
             disk_io: str,
@@ -1286,7 +1345,7 @@ class PWscfCalculation:
         :param pseudos: dict mapping atom labels 'X' to pseudopotential paths 'PseudoPot_X', in the ATOMIC_SPECIES card
         :type pseudos: Dict[str, str]
         :param forces: 'if_pos(1)', 'if_pos(2)', 'if_pos(3)' toggles for each atom for the ATOMIC_POSITIONS card  # TODO: change to boolean components
-        :type forces: Iterable[Iterable[int, int, int]]
+        :type forces: Iterable[tuple[int, int, int]]
         :param k_points_mode: corresponds to the K_POINTS card option
         :type k_points_mode: str
         :param k_points: k-points used by calculation specified under the K_POINTS card
@@ -1557,6 +1616,7 @@ class BandsXCalculation:
     <https://www.quantum-espresso.org/Doc/INPUT_BANDS.html>`_ Input options for settings are checked to make sure they
     are valid settings. # TODO: implement this for all possible settings
     """
+
     def __init__(
             self,
             structure: Structure,
@@ -1571,9 +1631,9 @@ class BandsXCalculation:
         :type structure: Structure
         :param lsym: corresponds to the 'lsym' setting in the &bands namelist
         :type lsym: str
-        :param out_prefix: specifies the prefix to the 'out' setting in the &bands namelist. The prefix precedes the system name. Defaults to "out_"
+        :param out_prefix: specifies the prefix to the out setting in the &bands namelist. The prefix precedes the system name. Defaults to out_
         :type out_prefix: str
-        :param filband_suffix: specifies the suffix to the 'filband' setting in the &bands namelist. The suffix follows the system name. Defaults to ".band_structure.dat"
+        :param filband_suffix: specifies the suffix to the filband setting in the &bands namelist. The suffix follows the system name. Defaults to .band_structure.dat
         :type filband_suffix: str
         :param lsigma3: corresponds to the 'lsigma(3)' setting in the &bands namelist, defaults to None (unspecified)
         :type lsigma3: bool
@@ -1588,6 +1648,7 @@ class BandsXCalculation:
 
 class BandsXInputWriter(StructureFileWriter):
     """A Quantum Espresso (QE) band.x utility input file writer"""
+
     def __init__(self, write_path: str, bands_x_calc: BandsXCalculation) -> None:
         """:class:`~BandsXInputWriter` constructor
 

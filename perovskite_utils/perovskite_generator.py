@@ -8,12 +8,12 @@ from perovskite_utils.structure import Structure, StructureAtom, CoordinateModes
 
 
 class PerovskiteStructure(Structure):
-    """Extends :class:`~Structure` to store chiral perovskite structural information"""
+    """Extends :class:`~.Structure` to store chiral perovskite structural information"""
 
-    def __init__(self, name: str, lattice_vec: Iterable[
-        Iterable[float, float, float], Iterable[float, float, float], Iterable[float, float, float]],
+    def __init__(self, name: str, lattice_vec: tuple[
+        tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]],
                  atoms: list[StructureAtom], coordinate_mode: CoordinateModes) -> None:
-        """:class:`~PerovskiteStructure` structor
+        """:class:`~PerovskiteStructure` constructor
 
         :param name: name of the structure
         :type name: str
@@ -29,10 +29,10 @@ class PerovskiteStructure(Structure):
     @staticmethod
     def from_param(
             name: str,
-            lattice_vec: Iterable[
-                Iterable[float, float, float], Iterable[float, float, float], Iterable[float, float, float]],
-            cart_M_disp: Iterable[float, float],
-            cart_layer_trans: Iterable[float, float, float],
+            lattice_vec: tuple[
+                tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]],
+            cart_M_disp: tuple[float, float],
+            cart_layer_trans: tuple[float, float, float],
             theta_d: float,
             ax_bl: float,
             beta_bl_ratio: float,
@@ -48,11 +48,11 @@ class PerovskiteStructure(Structure):
         :param name: name of the structure
         :type name: str
         :param lattice_vec: Cartesian lattice vectors for the structure in angstroms
-        :type lattice_vec: Iterable[Iterable[float, float, float], Iterable[float, float, float], Iterable[float, float, float]]
+        :type lattice_vec: tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]
         :param cart_M_disp: in-plane cartesian displacement of the metal atom relative to the other metal atom in the unit cell
-        :type cart_M_disp: Iterable[float, float]
+        :type cart_M_disp: tuple[float, float]
         :param cart_layer_trans: Cartesian displacement of an inorganic layer relative to the other inorganic layer in the unit cell in angstroms
-        :type cart_layer_trans:  Iterable[float, float, float]
+        :type cart_layer_trans:  tuple[float, float, float]
         :param theta_d: angle in degrees relative to the inorganic-plane normal for axial halogen atoms
         :type theta_d: float
         :param ax_bl: bond length for the axial halogen atoms
@@ -132,7 +132,7 @@ class PerovskiteStructure(Structure):
         :param betap_r: beta prime bond angle in radians
         :type betap_r: float
         :return: positions of the metal and halogen atoms
-        :rtype: Iterable[Iterable[Iterable[float, float, float]], Iterable[Iterable[float, float, float]]]
+        :rtype: tuple[Iterable[tuple[float, float, float]], Iterable[tuple[float, float, float]]]
         """
         # M atom positions
         M_pos = np.array([[x, y, 0], [0, 0, 0]])

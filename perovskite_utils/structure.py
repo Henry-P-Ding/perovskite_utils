@@ -22,8 +22,19 @@ class Structure:
     """
     Stores structural information for a crystal
 
-    :attr:`Structure._UC_EXPAND_LAT` is a list of the 27 nearest-neighbor lattice-symmetric translation in a fractional
-    basis.
+    :cvar _UC_EXPAND_LAT: the 27 nearest-neighbor lattice-symmetric unit cell translations in a fractional basis.
+    :ivar name: name of the structure
+    :vartype name: str
+    :ivar struct_type: type of structure, such as 'relaxed' or 'experimental'
+    :vartype struct_type: str
+    :ivar _lattice_vec: crystal lattice vectors specified in a Cartesian basis
+    :vartype _lattice_vec: tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]
+    :ivar recip_vec: reciprocal lattice vectors specified in a Cartesian basis
+    :vartype recip_vec: tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]
+    :ivar atoms: collection of atoms in the structure
+    :vartype atoms: list[StructureAtom]
+    :ivar _coordinate_mode: coordinate basis used to specify the atomic positions
+    :vartype _coordinate_mode: CoordinateModes
     """
     _UC_EXPAND_LAT = np.array(
         [
@@ -57,8 +68,8 @@ class Structure:
         ]
     )
 
-    def __init__(self, name: str, struct_type: str, lattice_vec: Iterable[
-        Iterable[float, float, float], Iterable[float, float, float], Iterable[float, float, float]],
+    def __init__(self, name: str, struct_type: str, lattice_vec: tuple[
+        tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]],
                  atoms: list['StructureAtom'],
                  coordinate_mode: CoordinateModes) -> None:
         """:class:`~Structure` constructor
@@ -68,7 +79,7 @@ class Structure:
         :param struct_type: type of structure, such as 'relaxed' or 'experimental'
         :type struct_type: str
         :param lattice_vec: crystal lattice vectors specified in a Cartesian basis
-        :type lattice_vec: Iterable[Iterable[float, float, float], Iterable[float, float, float], Iterable[float, float, float]]
+        :type lattice_vec: tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]
         :param atoms: collection of atoms in the structure
         :type atoms: list[StructureAtom]
         :param coordinate_mode: coordinate basis used to specify the atomic positions
@@ -76,13 +87,21 @@ class Structure:
         """
         self.name = name
         self.struct_type = struct_type
-        self.lattice_vec = lattice_vec
+        self._lattice_vec = lattice_vec
         self.recip_vec = []  # TODO: refactor to include recip vec
         self.atoms = atoms
         self._coordinate_mode = coordinate_mode
 
     def __repr__(self):
         return f"{self.name} {self.struct_type}"
+
+    @property
+    def lattice_vec(self) -> tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]:
+        return self._lattice_vec
+
+    @lattice_vec.setter
+    def lattice_vec(self, new_lattice_vec: tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]):
+        self._lattice_vec = new_lattice_vec
 
     @property
     def coordinate_mode(self):
@@ -103,12 +122,12 @@ class Structure:
             raise ValueError("new_mode argument is not of type CoordinateModes")
         self._coordinate_mode = new_mode
 
-    def translate(self, trans: Iterable[float, float, float]) -> 'Structure':
+    def translate(self, trans: tuple[float, float, float]) -> 'Structure':
         """
         Translates all atoms in the structure, returning a new structure with the translated atoms
 
         :param trans: translation
-        :type trans: Iterable[float, float, float]
+        :type trans: tuple[float, float, float]
         :return: new structure with the translated atoms
         :rtype: Structure
         """
@@ -225,7 +244,7 @@ class Structure:
         )
 
     def detect_bonds(self, possible_bonds: Iterable[frozenset[str, str]],
-                     bond_vec_predicate: Callable[[Iterable[float, float, float], frozenset[str, str]], bool],
+                     bond_vec_predicate: Callable[[tuple[float, float, float], frozenset[str, str]], bool],
                      check_boundaries=True) -> None:
         """
         Detects bonds between two atoms in the structure and adds Bond objects to each atom.
@@ -233,7 +252,7 @@ class Structure:
         :param possible_bonds: collection of frozenset containing str pairs of atom labels. These pairs of atom types are checked for bonds.
         :type possible_bonds: Iterable[frozenset[str, str]]
         :param bond_vec_predicate: predicate that accepts space vector joining two atoms and a frozenset with their atomic labels and returns whether these two atoms are bonded
-        :type bond_vec_predicate: Callable[[Iterable[float, float, float], frozenset[str, str]], bool]
+        :type bond_vec_predicate: Callable[[tuple[float, float, float], frozenset[str, str]], bool]
         :param check_boundaries: check additional atoms in the structure beyond the unit cell due periodic boundary conditions, defaults to True
         :type check_boundaries: bool
         """
@@ -308,15 +327,24 @@ class Structure:
 
 
 class StructureAtom:
-    """Stores the position, labels, and bonds of an atom"""
-    def __init__(self, pos: Iterable[float, float, float], label: str, bonds: Iterable['Bond'] = None) -> None:
+    """
+    Stores the position, labels, and bonds of an atom
+
+    :ivar pos: position of the atom
+    :vartype pos: tuple[float, float, float]
+    :ivar label: label of the atom
+    :vartype label: str
+    :ivar bonds: collection of bonds that atom participates in
+    :vartype bonds: Iterable[Bond]
+    """
+    def __init__(self, pos: tuple[float, float, float], label: str, bonds: Iterable['Bond'] = None) -> None:
         """:class:`~StructureAtom` constructor
 
         :param pos: position of the atom
-        :type pos: Iterable[float, float, float]
+        :type pos: tuple[float, float, float]
         :param label: label of the atom
         :type label: str
-        :param bonds: collection of bonds for the atom participates in
+        :param bonds: collection of bonds that atom participates in
         :type bonds: Iterable[Bond]
         """
         self.pos = pos
@@ -329,12 +357,12 @@ class StructureAtom:
     def __repr__(self):
         return f"{self.label}: {self.pos}"
 
-    def translate(self, translation: Iterable[float, float, float]) -> 'StructureAtom':
+    def translate(self, translation: tuple[float, float, float]) -> 'StructureAtom':
         """
         Translates atom, returning a new StructureAtom object
 
         :param translation: translation vector
-        :type translation: Iterable[float, float, float]
+        :type translation: tuple[float, float, float]
         :return: translated atom
         :rtype: StructureAtom
         """
@@ -343,12 +371,21 @@ class StructureAtom:
 
 
 class Bond:
-    """Stores information about a bond between two atoms"""
-    def __init__(self, bond_vec: Iterable[float, float, float], atom1: StructureAtom, atom2: StructureAtom) -> None:
+    """
+    Stores information about a bond between two atoms
+
+    :ivar _bond_vec: vector joining the two atoms in the bond in a Cartesian basis in angstroms
+    :vartype _bond_vec: tuple[float, float, float]
+    :ivar _bond_length: bond length in angstroms
+    :vartype _bond_length: float
+    :ivar _atoms: the pair of atoms involved in the bond
+    :vartype _atoms: set
+    """
+    def __init__(self, bond_vec: tuple[float, float, float], atom1: StructureAtom, atom2: StructureAtom) -> None:
         """:class:`~Bond` constructor
 
         :param bond_vec: vector joining the two atoms in the bond
-        :type bond_vec: Iterable[float, float, float]
+        :type bond_vec: tuple[float, float, float]
         :param atom1: atom involved in the bond
         :type atom1: StructureAtom
         :param atom2: atom involved in the bond
@@ -372,12 +409,12 @@ class Bond:
         return self._bond_length
 
     @property
-    def bond_vec(self) -> Iterable[float, float, float]:
+    def bond_vec(self) -> tuple[float, float, float]:
         """
         Gets the bond vector.
 
         :return: bond vector
-        :rtype: Iterable[float, float, float]
+        :rtype: tuple[float, float, float]
         """
         return self._bond_vec
 
