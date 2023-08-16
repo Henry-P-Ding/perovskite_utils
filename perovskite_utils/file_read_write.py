@@ -1,4 +1,4 @@
-"""Utility classes for generation of file I/O for Quantum Espresso and CIF files.
+"""Utility classes for generation of file I/O for first-principles calculations.
 """
 import copy
 import re
