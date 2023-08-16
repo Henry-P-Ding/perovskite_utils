@@ -70,7 +70,7 @@ class Structure:
         :param lattice_vec: crystal lattice vectors specified in a Cartesian basis
         :type lattice_vec: Iterable[Iterable[float, float, float], Iterable[float, float, float], Iterable[float, float, float]]
         :param atoms: collection of atoms in the structure
-        :type atoms: Iterable[StructureAtom]
+        :type atoms: list[StructureAtom]
         :param coordinate_mode: coordinate basis used to specify the atomic positions
         :type coordinate_mode: CoordinateModes
         """
