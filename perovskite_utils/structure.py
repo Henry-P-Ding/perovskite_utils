@@ -87,7 +87,7 @@ class Structure:
         """
         self.name = name
         self.struct_type = struct_type
-        self._lattice_vec = lattice_vec
+        self._lattice_vec = lattice_vec  # TODO: check for positive cross product as required by quantum espresso
         self.recip_vec = []  # TODO: refactor to include recip vec
         self.atoms = atoms
         self._coordinate_mode = coordinate_mode
@@ -100,7 +100,8 @@ class Structure:
         return self._lattice_vec
 
     @lattice_vec.setter
-    def lattice_vec(self, new_lattice_vec: tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]):
+    def lattice_vec(self, new_lattice_vec: tuple[
+        tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]):
         self._lattice_vec = new_lattice_vec
 
     @property
@@ -134,11 +135,11 @@ class Structure:
         # TODO: use atom translate method
         trans_atoms = [
             StructureAtom(
-                pos=[
+                pos=(
                     atom.pos[0] + trans[0],
                     atom.pos[1] + trans[1],
                     atom.pos[2] + trans[2],
-                ],
+                ),
                 label=atom.label,
                 bonds=copy.deepcopy(atom.bonds),
             )
@@ -163,8 +164,8 @@ class Structure:
             return Structure(
                 self.name,
                 self.struct_type,
-                self.lattice_vec,
-                self.atoms,
+                copy.deepcopy(self.lattice_vec),
+                copy.deepcopy(self.atoms),
                 self.coordinate_mode,
             )
         elif self.coordinate_mode == CoordinateModes.CARTESIAN:
@@ -172,7 +173,7 @@ class Structure:
             # cart to fract transformation matrix
             trans_mat = np.linalg.inv(np.array(self.lattice_vec).T)
             # change of basis transformation
-            fract_pos = list(np.matmul(trans_mat, np.array(cart_pos).T).T)
+            fract_pos = tuple(map(tuple, np.matmul(trans_mat, np.array(cart_pos).T).T))
             fract_atoms = []
             for i, atom in enumerate(self.atoms):
                 fract_atoms.append(StructureAtom(fract_pos[i], atom.label))
@@ -202,19 +203,19 @@ class Structure:
         :param gamma: gamma cell angle in radians
         :type gamma: float
         """
-        a_vec = [a, 0, 0]
-        b_vec = [b * np.cos(gamma), b * np.sin(gamma), 0]
-        c_vec = [
+        a_vec = (a, 0, 0)
+        b_vec = (b * np.cos(gamma), b * np.sin(gamma), 0)
+        c_vec = (
             c * np.cos(beta),
             c * (np.cos(alpha) - np.cos(beta) * np.cos(gamma)) / np.sin(gamma),
             c
             * np.sqrt(
                 1
                 - np.square(np.cos(beta))
-                - np.square((np.cos(alpha) - np.cos(beta) * np.cos(gamma)))
+                - np.square((np.cos(alpha) - np.cos(beta) * np.cos(gamma)) / np.sin(gamma))
             ),
-        ]
-        self.lattice_vec = [a_vec, b_vec, c_vec]
+        )
+        self.lattice_vec = (a_vec, b_vec, c_vec)
 
     def get_cell_params_from_lattice_vec(self) -> tuple[float, float, float, float, float, float]:
         """
@@ -323,6 +324,7 @@ class Structure:
         :return: empty structure
         :rtype: Structure
         """
+        # TODO: refator to a tuple once all of the file_read_write methods are fixed
         return Structure("", "", [], [], CoordinateModes.FRACTIONAL)
 
 
@@ -337,6 +339,7 @@ class StructureAtom:
     :ivar bonds: collection of bonds that atom participates in
     :vartype bonds: Iterable[Bond]
     """
+
     def __init__(self, pos: tuple[float, float, float], label: str, bonds: Iterable['Bond'] = None) -> None:
         """:class:`~StructureAtom` constructor
 
@@ -357,6 +360,9 @@ class StructureAtom:
     def __repr__(self):
         return f"{self.label}: {self.pos}"
 
+    def __eq__(self, other):
+        return self.label == other.label and self.pos == other.pos
+
     def translate(self, translation: tuple[float, float, float]) -> 'StructureAtom':
         """
         Translates atom, returning a new StructureAtom object
@@ -366,7 +372,7 @@ class StructureAtom:
         :return: translated atom
         :rtype: StructureAtom
         """
-        new_pos = list(map(lambda e1, e2: e1 + e2, self.pos, translation))
+        new_pos = tuple(map(lambda e1, e2: e1 + e2, self.pos, translation))
         return StructureAtom(new_pos, self.label, self.bonds)
 
 
@@ -381,6 +387,7 @@ class Bond:
     :ivar _atoms: the pair of atoms involved in the bond
     :vartype _atoms: set
     """
+
     def __init__(self, bond_vec: tuple[float, float, float], atom1: StructureAtom, atom2: StructureAtom) -> None:
         """:class:`~Bond` constructor
 

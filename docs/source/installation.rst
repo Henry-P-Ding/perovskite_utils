@@ -12,7 +12,7 @@ The following packages, which are automatically installed via installation with 
 Installation with ``pip``
 *************************
 
-``perovskite_utils`` can be installed directly from the `Github repository <https://github.com/Henry-P-Ding/perovskite_utils>`_ using the `install from VCS option <https://pip.pypa.io/en/stable/topics/vcs-support/>`_ in ``pip``:
+``perovskite_utils`` can be installed directly from the `Github repository <https://github.com/Qiu-Group/perovskite_utils>`_ using the `install from VCS option <https://pip.pypa.io/en/stable/topics/vcs-support/>`_ in ``pip``:
 
 .. code-block:: console
 

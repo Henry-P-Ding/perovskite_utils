@@ -89,7 +89,7 @@ class PerovskiteStructure(Structure):
         layer2_M_pos[:, 0:2] = -layer2_M_pos[:, 0:2]  # reflect about xz, yz, plane
         layer2_X_pos[:, 0:2] = -layer2_X_pos[:, 0:2]  # reflect about xz, yz, plane
 
-        # translates second inorganic lyer
+        # translates second inorganic layer
         layer2_M_pos = layer2_M_pos + np.tile(
             np.array([trans_x, trans_y, trans_z]), (layer2_M_pos.shape[0], 1)
         )
